@@ -1,8 +1,13 @@
 import express from "express"
 import cors from "cors"
-const app = express()
-const port = process.env.port || 3000;
+import schema from "./schema/index.mjs"
+import dotenv from "dotenv";
 
+dotenv.config();
+
+const PORT = process.env.PORT;
+
+const app = express();
 app.use(express.json());
 app.use(cors());
 
@@ -130,11 +135,17 @@ const allUsers = [
 ]
 
 
-//get request
+//get all users 
 app.get('/users', (req, res) => {
-  res.send(allUsers);
+  try {
+    res.send(allUsers);
+  }
+  catch (err) {
+    res.status(500).send({ message: " Error in fetching users" })
+  }
 })
 
+//get a single user
 app.get('/users/:id', (req, res) => {
   const userId = req.params.id
   const userData = allUsers.find((u) => u.id === Number(userId))
@@ -146,50 +157,57 @@ app.get('/users/:id', (req, res) => {
 })
 
 
-//post request
-app.post('/users', (req, res) => {
-  allUsers.push({ id: allUsers.length + 1, ...req.body });
-  res.send("User Added Successfully");
-})
-
-//put request
-// app.put('/users/:id', (req, res) => {
-//   const userId = req.params.id
-//   const userData = allUsers.find((u) => u.id === Number(userId))
-//   console.log(userData)
-//   if (userData) {
-//     const updatedData = req.body
-//     Object.assign(userData, updatedData)
-//     res.send("User Updated Successfully");
-//   } else {
-//     res.status(404).send({ message: "User Not Found" })
-//   }
-// })
-app.put('/users/:id', (req, res) => {
-  const userId = req.params.id
-  const index = allUsers.findIndex((u) => u.id === Number(userId))
-  if (index !== -1) {
-    allUsers.splice(index, 1,{...req.body,userId})
-    res.send("User updated Successfully");
-  } else {
-    res.status(404).send({ message: "User Not Found" })
+//post : add user
+app.post('/users', async (req, res) => {
+  try {
+    await schema.validateAsync(req.body);
+    allUsers.push({ id: allUsers.length + 1, ...req.body });
+    res.send("User Added Successfully");
+  }
+  catch (err) {
+    res.status(404).send({ message: "Error in adding user" })
   }
 })
 
-//delete request
+//put : update user
+app.put('/users/:id', async (req, res) => {
+  try {
+    await schema.validateAsync(req.body);
+    const userId = req.params.id;
+    const index = allUsers.findIndex((u) => u.id === Number(userId));
+
+    if (index !== -1) {
+      allUsers.splice(index, 1, { userId, ...req.body })
+      res.send("User updated Successfully");
+    }
+    else {
+      res.status(404).send({ message: "User Not Found" });
+    }
+  }
+  catch (err) {
+    res.status(400).send({ message: "Invalid data" })
+  }
+})
+
+// DELETE: Remove user
 app.delete('/users/:id', (req, res) => {
-  const userId = req.params.id
-  const index = allUsers.findIndex((u) => u.id === Number(userId))
-  if (index !== -1) {
-    allUsers.splice(index, 1)
-    res.send("User Deleted Successfully");
-  } else {
-    res.status(404).send({ message: "User Not Found" })
+  try {
+    const userId = req.params.id
+    const index = allUsers.findIndex((u) => u.id === Number(userId))
+    if (index !== -1) {
+      allUsers.splice(index, 1)
+      res.send("User Deleted Successfully");
+    }
+    else {
+      res.status(404).send({ message: "User Not Found" });
+    }
+  }
+  catch (err) {
+    res.status(500).send({ message: "Error deleting user" });
   }
 })
 
 
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
-})
-
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
