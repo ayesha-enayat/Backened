@@ -136,6 +136,9 @@ const allUsers = [
 
 
 //get all users 
+app.get('/',(req,res) =>{
+  res.send("server running...")
+})
 app.get('/users', (req, res) => {
   try {
     res.send(allUsers);
